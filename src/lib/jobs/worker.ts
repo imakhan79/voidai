@@ -3,6 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getProvider } from "@/lib/providers/registry";
 import { getAgent } from "@/lib/agents/registry";
 import { detectGaps } from "@/lib/pipeline/gap-detection";
+import { judgeOpportunity } from "@/lib/pipeline/opportunity-judgment";
+import { scoreOpportunity } from "@/lib/pipeline/opportunity-scoring";
 import type { Database } from "@/lib/supabase/database.types";
 import type { NewEvidenceInput } from "@/lib/evidence-types";
 
@@ -119,14 +121,60 @@ export async function processResearchJob(params: ProcessJobParams): Promise<void
 
         if (!gapRow) continue;
 
-        const evidenceIds = gap.supportingEvidenceIndexes
-          .map((i) => accumulated[i - 1]?.id)
-          .filter((id): id is number => id !== undefined);
+        const gapEvidence = gap.supportingEvidenceIndexes
+          .map((i) => accumulated[i - 1])
+          .filter((e): e is { id: number; item: NewEvidenceInput } => e !== undefined);
 
-        if (evidenceIds.length > 0) {
+        if (gapEvidence.length > 0) {
           await admin
             .from("gap_evidence")
-            .insert(evidenceIds.map((evidence_id) => ({ gap_id: gapRow.id, evidence_id })));
+            .insert(gapEvidence.map(({ id }) => ({ gap_id: gapRow.id, evidence_id: id })));
+        }
+
+        // A gap with no supporting evidence isn't scoreable — opportunity
+        // judgment needs something to reason about.
+        if (gapEvidence.length === 0) continue;
+
+        try {
+          const judgment = await judgeOpportunity(
+            gap,
+            gapEvidence.map((e) => e.item),
+            provider,
+          );
+          const scoring = scoreOpportunity(
+            judgment,
+            gapEvidence.map((e) => ({
+              status: e.item.status,
+              qualityScore: e.item.qualityScore,
+              sourceName: e.item.sourceName,
+            })),
+          );
+
+          const { data: oppRow } = await admin
+            .from("opportunities")
+            .insert({
+              discovery_id: discoveryId,
+              org_id: orgId,
+              gap_id: gapRow.id,
+              title: judgment.title,
+              description: judgment.description,
+              opportunity_score: scoring.opportunityScore,
+              confidence_score: scoring.confidenceScore,
+              scoring_breakdown: JSON.parse(JSON.stringify(scoring.breakdown)),
+            })
+            .select("id")
+            .single();
+
+          if (oppRow) {
+            await admin.from("opportunity_evidence").insert(
+              gapEvidence.map(({ id }) => ({
+                opportunity_id: oppRow.id,
+                evidence_id: id,
+              })),
+            );
+          }
+        } catch (err) {
+          console.error(`Opportunity scoring failed for gap ${gapRow.id}:`, err);
         }
       }
     } catch (err) {

@@ -31,7 +31,7 @@ export async function judgeOpportunity(
     model: "capable",
     system: SYSTEM_PROMPT,
     enableWebSearch: false,
-    maxTokens: 1024,
+    maxTokens: 4096,
     messages: [
       {
         role: "user",

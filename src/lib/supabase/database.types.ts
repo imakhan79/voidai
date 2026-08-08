@@ -396,6 +396,101 @@ export interface Database {
           },
         ];
       };
+      opportunities: {
+        Row: {
+          id: string;
+          discovery_id: string;
+          org_id: string;
+          gap_id: string | null;
+          title: string;
+          description: string;
+          opportunity_score: number;
+          confidence_score: number;
+          scoring_breakdown: Json;
+          status: "candidate" | "saved" | "archived";
+          is_saved: boolean;
+          is_demo: boolean;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          discovery_id: string;
+          org_id: string;
+          gap_id?: string | null;
+          title: string;
+          description: string;
+          opportunity_score: number;
+          confidence_score: number;
+          scoring_breakdown: Json;
+          status?: "candidate" | "saved" | "archived";
+          is_saved?: boolean;
+          is_demo?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          discovery_id?: string;
+          org_id?: string;
+          gap_id?: string | null;
+          title?: string;
+          description?: string;
+          opportunity_score?: number;
+          confidence_score?: number;
+          scoring_breakdown?: Json;
+          status?: "candidate" | "saved" | "archived";
+          is_saved?: boolean;
+          is_demo?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "opportunities_discovery_id_fkey";
+            columns: ["discovery_id"];
+            isOneToOne: false;
+            referencedRelation: "discoveries";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "opportunities_gap_id_fkey";
+            columns: ["gap_id"];
+            isOneToOne: false;
+            referencedRelation: "gaps";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      opportunity_evidence: {
+        Row: { opportunity_id: string; evidence_id: number; relevance_weight: number };
+        Insert: {
+          opportunity_id: string;
+          evidence_id: number;
+          relevance_weight?: number;
+        };
+        Update: {
+          opportunity_id?: string;
+          evidence_id?: number;
+          relevance_weight?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_evidence_opportunity_id_fkey";
+            columns: ["opportunity_id"];
+            isOneToOne: false;
+            referencedRelation: "opportunities";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "opportunity_evidence_evidence_id_fkey";
+            columns: ["evidence_id"];
+            isOneToOne: false;
+            referencedRelation: "evidence";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
