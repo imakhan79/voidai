@@ -1,25 +1,16 @@
 import type { Agent, AgentContext, AgentResult } from "./types";
 import type { LLMProvider } from "@/lib/providers/types";
 import { parseFindingsToEvidence } from "./parse-findings";
+import { groundedSnippetsToEvidence } from "./grounded-snippets-to-evidence";
 
 const SYSTEM_PROMPT = `You are the Market agent inside VOID AI, an innovation-discovery system.
 Given a problem/domain statement, use web search focused narrowly on: market sizing,
 existing competitor products, pricing, funding signals, and adoption trends.
 
-Never state a claim you did not just retrieve via search. After searching, respond with
-ONLY a JSON array (no prose, no markdown fences) of findings, each shaped as:
-{
-  "claim": string,
-  "sourceName": string,
-  "citationUrl": string,
-  "evidenceType": "market_data" | "competitor",
-  "publishedDate": string | null,
-  "isForwardLooking": boolean,
-  "isAgentInference": boolean,
-  "corroboratingSourceCount": number,
-  "qualityScore": number,
-  "rawExcerpt": string
-}`;
+Write your findings as clear, factual, self-contained sentences — one distinct claim per
+sentence, grounded in what you found via search. Do not state a claim you did not just
+retrieve via search. Prefer plain prose organized under short headings over lists of
+fragments; each sentence should stand on its own as a checkable claim.`;
 
 const ALLOWED_TYPES = ["market_data", "competitor"] as const;
 
@@ -40,11 +31,10 @@ export class MarketAgent implements Agent {
       ],
     });
 
-    const evidence = parseFindingsToEvidence(
-      result.content,
-      result.citations,
-      ALLOWED_TYPES,
-    );
+    const evidence =
+      result.groundedSnippets && result.groundedSnippets.length > 0
+        ? groundedSnippetsToEvidence(result.groundedSnippets, "market_data")
+        : parseFindingsToEvidence(result.content, result.citations, ALLOWED_TYPES);
 
     return {
       evidence,

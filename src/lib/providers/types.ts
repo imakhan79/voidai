@@ -22,6 +22,18 @@ export interface Citation {
   title?: string;
 }
 
+/**
+ * A span of the model's own response text, resolved by the provider's own
+ * grounding metadata to the real citation(s) backing it — not self-reported
+ * by the model. Preferred over parsing citationUrl fields out of prose,
+ * since it doesn't depend on the model faithfully reproducing an opaque
+ * source URL it never actually saw as text.
+ */
+export interface GroundedSnippet {
+  text: string;
+  citations: Citation[];
+}
+
 export interface CompletionRequest {
   /** Logical tier — each provider maps this to its own model id. */
   model: "capable" | "cheap";
@@ -52,6 +64,8 @@ export interface CompletionResult {
    * with no accompanying citation.
    */
   citations: Citation[];
+  /** Populated only by providers whose grounding metadata gives text-span-level attribution (e.g. Gemini). */
+  groundedSnippets?: GroundedSnippet[];
 }
 
 export interface LLMProvider {

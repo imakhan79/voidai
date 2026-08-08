@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Panel, PanelHeader, PanelTitle, PanelBody } from "@/components/ui/Panel";
 import { DemoDataBanner } from "@/components/demo/DemoDataBanner";
 import { LiveDot } from "@/components/ui/LiveDot";
+import { RunResearchButton } from "@/components/discoveries/RunResearchButton";
+import { EvidenceTable } from "@/components/evidence/EvidenceTable";
 import type { LiveState } from "@/lib/domain-types";
 
 const STATUS_LIVE_STATE: Record<string, LiveState> = {
@@ -29,21 +31,38 @@ export default async function DiscoveryDetailPage({
 
   if (!discovery) notFound();
 
+  const { data: evidence } = await supabase
+    .from("evidence")
+    .select(
+      "id, source_name, source_url, published_date, evidence_type, quality_score, confidence_score, status, summary",
+    )
+    .eq("discovery_id", discoveryId)
+    .order("created_at", { ascending: false });
+
+  const { data: agentRuns } = await supabase
+    .from("agent_runs")
+    .select("id, agent_type, status, summary, error, tokens_input, tokens_output, finished_at")
+    .eq("discovery_id", discoveryId)
+    .order("created_at", { ascending: false });
+
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <div className="flex items-center gap-3">
-          <h1 className="text-lg font-semibold text-foreground">{discovery.title}</h1>
-          <LiveDot
-            state={STATUS_LIVE_STATE[discovery.status] ?? "idle"}
-            label={discovery.status}
-          />
-        </div>
-        {discovery.is_demo && (
-          <div className="mt-2">
-            <DemoDataBanner />
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-lg font-semibold text-foreground">{discovery.title}</h1>
+            <LiveDot
+              state={STATUS_LIVE_STATE[discovery.status] ?? "idle"}
+              label={discovery.status}
+            />
           </div>
-        )}
+          {discovery.is_demo && (
+            <div className="mt-2">
+              <DemoDataBanner />
+            </div>
+          )}
+        </div>
+        <RunResearchButton discoveryId={discovery.id} />
       </div>
 
       <Panel>
@@ -57,15 +76,32 @@ export default async function DiscoveryDetailPage({
         </PanelBody>
       </Panel>
 
+      {agentRuns && agentRuns.length > 0 && (
+        <Panel>
+          <PanelHeader>
+            <PanelTitle>Agent runs</PanelTitle>
+          </PanelHeader>
+          <PanelBody className="flex flex-col gap-2">
+            {agentRuns.map((run) => (
+              <div key={run.id} className="flex items-center justify-between text-sm">
+                <span className="font-tabular text-foreground-muted">
+                  {run.agent_type}
+                </span>
+                <span className="text-foreground-muted">
+                  {run.error ?? run.summary ?? run.status}
+                </span>
+              </div>
+            ))}
+          </PanelBody>
+        </Panel>
+      )}
+
       <Panel>
         <PanelHeader>
-          <PanelTitle>Research pipeline</PanelTitle>
+          <PanelTitle>Evidence ({evidence?.length ?? 0})</PanelTitle>
         </PanelHeader>
-        <PanelBody>
-          <p className="text-sm text-foreground-muted">
-            Evidence, gaps, and opportunities appear here once a research run
-            is triggered. This is wired up next.
-          </p>
+        <PanelBody className="p-0">
+          <EvidenceTable evidence={evidence ?? []} />
         </PanelBody>
       </Panel>
     </div>

@@ -2,25 +2,16 @@ import type { Agent, AgentContext } from "./types";
 import type { AgentResult } from "./types";
 import type { LLMProvider } from "@/lib/providers/types";
 import { parseFindingsToEvidence } from "./parse-findings";
+import { groundedSnippetsToEvidence } from "./grounded-snippets-to-evidence";
 
 const SYSTEM_PROMPT = `You are the Research agent inside VOID AI, an innovation-discovery system.
 Given a problem/domain statement, use web search to find real primary sources: academic
 work, industry analysis, news coverage, and community discussion relevant to the space.
 
-Never state a claim you did not just retrieve via search. After searching, respond with
-ONLY a JSON array (no prose, no markdown fences) of findings, each shaped as:
-{
-  "claim": string,
-  "sourceName": string,
-  "citationUrl": string,        // must be a URL you actually retrieved via search
-  "evidenceType": "academic" | "news" | "community" | "other",
-  "publishedDate": string | null,
-  "isForwardLooking": boolean,  // true if this is a forecast about the future
-  "isAgentInference": boolean,  // true if derived by your reasoning, not stated by the source
-  "corroboratingSourceCount": number, // other independent sources you found agreeing
-  "qualityScore": number,       // 0-1, your assessment of source credibility
-  "rawExcerpt": string
-}`;
+Write your findings as clear, factual, self-contained sentences — one distinct claim per
+sentence, grounded in what you found via search. Do not state a claim you did not just
+retrieve via search. Prefer plain prose organized under short headings over lists of
+fragments; each sentence should stand on its own as a checkable claim.`;
 
 const ALLOWED_TYPES = ["academic", "news", "community", "other"] as const;
 
@@ -41,11 +32,10 @@ export class ResearchAgent implements Agent {
       ],
     });
 
-    const evidence = parseFindingsToEvidence(
-      result.content,
-      result.citations,
-      ALLOWED_TYPES,
-    );
+    const evidence =
+      result.groundedSnippets && result.groundedSnippets.length > 0
+        ? groundedSnippetsToEvidence(result.groundedSnippets, "other")
+        : parseFindingsToEvidence(result.content, result.citations, ALLOWED_TYPES);
 
     return {
       evidence,

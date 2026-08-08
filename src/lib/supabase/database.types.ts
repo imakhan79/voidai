@@ -18,6 +18,26 @@ export type DiscoveryStatus =
   | "failed"
   | "insufficient_evidence";
 
+export type AgentRunAgentType = "research" | "market" | "product" | "red_team";
+export type AgentRunStatus = "queued" | "running" | "succeeded" | "failed";
+
+export type EvidenceStatusEnum =
+  | "VERIFIED"
+  | "SUPPORTED"
+  | "INFERRED"
+  | "HYPOTHESIS"
+  | "PREDICTION"
+  | "UNKNOWN";
+
+export type EvidenceTypeEnum =
+  | "market_data"
+  | "competitor"
+  | "academic"
+  | "news"
+  | "community"
+  | "patent"
+  | "other";
+
 export interface Database {
   public: {
     Tables: {
@@ -108,6 +128,134 @@ export interface Database {
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "orgs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      agent_runs: {
+        Row: {
+          id: number;
+          discovery_id: string;
+          org_id: string;
+          agent_type: AgentRunAgentType;
+          status: AgentRunStatus;
+          model: string | null;
+          summary: string | null;
+          tokens_input: number | null;
+          tokens_output: number | null;
+          error: string | null;
+          started_at: string | null;
+          finished_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: number;
+          discovery_id: string;
+          org_id: string;
+          agent_type: AgentRunAgentType;
+          status?: AgentRunStatus;
+          model?: string | null;
+          summary?: string | null;
+          tokens_input?: number | null;
+          tokens_output?: number | null;
+          error?: string | null;
+          started_at?: string | null;
+          finished_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: number;
+          discovery_id?: string;
+          org_id?: string;
+          agent_type?: AgentRunAgentType;
+          status?: AgentRunStatus;
+          model?: string | null;
+          summary?: string | null;
+          tokens_input?: number | null;
+          tokens_output?: number | null;
+          error?: string | null;
+          started_at?: string | null;
+          finished_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_runs_discovery_id_fkey";
+            columns: ["discovery_id"];
+            isOneToOne: false;
+            referencedRelation: "discoveries";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      evidence: {
+        Row: {
+          id: number;
+          discovery_id: string;
+          org_id: string;
+          agent_run_id: number;
+          source_name: string;
+          source_url: string;
+          published_date: string | null;
+          retrieved_at: string;
+          evidence_type: EvidenceTypeEnum;
+          quality_score: number;
+          confidence_score: number;
+          status: EvidenceStatusEnum;
+          summary: string;
+          raw_excerpt: string | null;
+          is_demo: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: number;
+          discovery_id: string;
+          org_id: string;
+          agent_run_id: number;
+          source_name: string;
+          source_url: string;
+          published_date?: string | null;
+          retrieved_at?: string;
+          evidence_type?: EvidenceTypeEnum;
+          quality_score: number;
+          confidence_score: number;
+          status: EvidenceStatusEnum;
+          summary: string;
+          raw_excerpt?: string | null;
+          is_demo?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: number;
+          discovery_id?: string;
+          org_id?: string;
+          agent_run_id?: number;
+          source_name?: string;
+          source_url?: string;
+          published_date?: string | null;
+          retrieved_at?: string;
+          evidence_type?: EvidenceTypeEnum;
+          quality_score?: number;
+          confidence_score?: number;
+          status?: EvidenceStatusEnum;
+          summary?: string;
+          raw_excerpt?: string | null;
+          is_demo?: boolean;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "evidence_agent_run_id_fkey";
+            columns: ["agent_run_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_runs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "evidence_discovery_id_fkey";
+            columns: ["discovery_id"];
+            isOneToOne: false;
+            referencedRelation: "discoveries";
             referencedColumns: ["id"];
           },
         ];
