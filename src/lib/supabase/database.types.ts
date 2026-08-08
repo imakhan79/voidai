@@ -38,6 +38,14 @@ export type EvidenceTypeEnum =
   | "patent"
   | "other";
 
+export type ResearchJobStatus =
+  | "queued"
+  | "running"
+  | "succeeded"
+  | "failed"
+  | "partial"
+  | "insufficient_evidence";
+
 export interface Database {
   public: {
     Tables: {
@@ -137,6 +145,7 @@ export interface Database {
           id: number;
           discovery_id: string;
           org_id: string;
+          job_id: string | null;
           agent_type: AgentRunAgentType;
           status: AgentRunStatus;
           model: string | null;
@@ -152,6 +161,7 @@ export interface Database {
           id?: number;
           discovery_id: string;
           org_id: string;
+          job_id?: string | null;
           agent_type: AgentRunAgentType;
           status?: AgentRunStatus;
           model?: string | null;
@@ -167,6 +177,7 @@ export interface Database {
           id?: number;
           discovery_id?: string;
           org_id?: string;
+          job_id?: string | null;
           agent_type?: AgentRunAgentType;
           status?: AgentRunStatus;
           model?: string | null;
@@ -181,6 +192,69 @@ export interface Database {
         Relationships: [
           {
             foreignKeyName: "agent_runs_discovery_id_fkey";
+            columns: ["discovery_id"];
+            isOneToOne: false;
+            referencedRelation: "discoveries";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agent_runs_job_id_fkey";
+            columns: ["job_id"];
+            isOneToOne: false;
+            referencedRelation: "research_jobs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      research_jobs: {
+        Row: {
+          id: string;
+          discovery_id: string;
+          org_id: string;
+          status: ResearchJobStatus;
+          requested_agents: string[];
+          error: string | null;
+          retry_count: number;
+          started_at: string | null;
+          finished_at: string | null;
+          created_by: string;
+          is_demo: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          discovery_id: string;
+          org_id: string;
+          status?: ResearchJobStatus;
+          requested_agents?: string[];
+          error?: string | null;
+          retry_count?: number;
+          started_at?: string | null;
+          finished_at?: string | null;
+          created_by: string;
+          is_demo?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          discovery_id?: string;
+          org_id?: string;
+          status?: ResearchJobStatus;
+          requested_agents?: string[];
+          error?: string | null;
+          retry_count?: number;
+          started_at?: string | null;
+          finished_at?: string | null;
+          created_by?: string;
+          is_demo?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "research_jobs_discovery_id_fkey";
             columns: ["discovery_id"];
             isOneToOne: false;
             referencedRelation: "discoveries";
