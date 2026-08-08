@@ -1,0 +1,136 @@
+@import "tailwindcss";
+
+:root {
+  /* Terminal-lab light palette */
+  --background: #f5f5f4;
+  --background-panel: #ffffff;
+  --background-inset: #ececea;
+  --foreground: #171717;
+  --foreground-muted: #57534e;
+  --border: #d6d3d1;
+  --border-strong: #a8a29e;
+  --accent: #0f766e; /* teal — primary system accent */
+  --accent-foreground: #ffffff;
+  --accent-2: #6366f1; /* electric indigo — secondary accent for gradients */
+  --surface-raised: #ffffff;
+  --grid-line: rgba(15, 23, 22, 0.06);
+
+  /* Evidence-status semantics — fixed across the whole app */
+  --status-verified: #15803d;
+  --status-supported: #0f766e;
+  --status-inferred: #1d4ed8;
+  --status-hypothesis: #b45309;
+  --status-prediction: #7e22ce;
+  --status-unknown: #57534e;
+
+  --live-ok: #16a34a;
+  --live-warn: #d97706;
+  --live-error: #dc2626;
+
+  --demo-banner-bg: #fef3c7;
+  --demo-banner-fg: #78350f;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-background-panel: var(--background-panel);
+  --color-background-inset: var(--background-inset);
+  --color-foreground: var(--foreground);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-status-verified: var(--status-verified);
+  --color-status-supported: var(--status-supported);
+  --color-status-inferred: var(--status-inferred);
+  --color-status-hypothesis: var(--status-hypothesis);
+  --color-status-prediction: var(--status-prediction);
+  --color-status-unknown: var(--status-unknown);
+
+  --color-live-ok: var(--live-ok);
+  --color-live-warn: var(--live-warn);
+  --color-live-error: var(--live-error);
+
+  --color-demo-banner-bg: var(--demo-banner-bg);
+  --color-demo-banner-fg: var(--demo-banner-fg);
+
+  --color-accent-2: var(--accent-2);
+  --color-surface-raised: var(--surface-raised);
+  --color-grid-line: var(--grid-line);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0b;
+    --background-panel: #131315;
+    --background-inset: #1c1c1f;
+    --foreground: #e4e4e7;
+    --foreground-muted: #a1a1aa;
+    --border: #27272a;
+    --border-strong: #3f3f46;
+    --accent: #2dd4bf;
+    --accent-foreground: #062723;
+    --accent-2: #818cf8;
+    --surface-raised: #17171a;
+    --grid-line: rgba(255, 255, 255, 0.06);
+
+    --status-verified: #4ade80;
+    --status-supported: #2dd4bf;
+    --status-inferred: #60a5fa;
+    --status-hypothesis: #fbbf24;
+    --status-prediction: #c084fc;
+    --status-unknown: #a1a1aa;
+
+    --live-ok: #4ade80;
+    --live-warn: #fbbf24;
+    --live-error: #f87171;
+
+    --demo-banner-bg: #451a03;
+    --demo-banner-fg: #fde68a;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+.font-tabular {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.text-gradient-accent {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.bg-grid {
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+@keyframes pulse-node {
+  0%, 100% { opacity: 0.25; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.4); }
+}
+
+.network-node {
+  animation: pulse-node 4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .network-node {
+    animation: none;
+  }
+}
