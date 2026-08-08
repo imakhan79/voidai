@@ -334,6 +334,68 @@ export interface Database {
           },
         ];
       };
+      gaps: {
+        Row: {
+          id: string;
+          discovery_id: string;
+          org_id: string;
+          job_id: string | null;
+          title: string;
+          description: string;
+          status: EvidenceStatusEnum;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          discovery_id: string;
+          org_id: string;
+          job_id?: string | null;
+          title: string;
+          description: string;
+          status: EvidenceStatusEnum;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          discovery_id?: string;
+          org_id?: string;
+          job_id?: string | null;
+          title?: string;
+          description?: string;
+          status?: EvidenceStatusEnum;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "gaps_discovery_id_fkey";
+            columns: ["discovery_id"];
+            isOneToOne: false;
+            referencedRelation: "discoveries";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      gap_evidence: {
+        Row: { gap_id: string; evidence_id: number };
+        Insert: { gap_id: string; evidence_id: number };
+        Update: { gap_id?: string; evidence_id?: number };
+        Relationships: [
+          {
+            foreignKeyName: "gap_evidence_gap_id_fkey";
+            columns: ["gap_id"];
+            isOneToOne: false;
+            referencedRelation: "gaps";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "gap_evidence_evidence_id_fkey";
+            columns: ["evidence_id"];
+            isOneToOne: false;
+            referencedRelation: "evidence";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

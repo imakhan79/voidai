@@ -47,7 +47,7 @@ export async function detectGaps(
     model: "capable",
     system: SYSTEM_PROMPT,
     enableWebSearch: false,
-    maxTokens: 3072,
+    maxTokens: 8192,
     messages: [
       {
         role: "user",

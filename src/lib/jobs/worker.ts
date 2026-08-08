@@ -2,7 +2,9 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getProvider } from "@/lib/providers/registry";
 import { getAgent } from "@/lib/agents/registry";
+import { detectGaps } from "@/lib/pipeline/gap-detection";
 import type { Database } from "@/lib/supabase/database.types";
+import type { NewEvidenceInput } from "@/lib/evidence-types";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
@@ -35,7 +37,10 @@ export async function processResearchJob(params: ProcessJobParams): Promise<void
     .eq("id", jobId);
   await admin.from("discoveries").update({ status: "researching" }).eq("id", discoveryId);
 
-  let totalEvidence = 0;
+  // Accumulated across agents, in insertion order — Product reads it as
+  // priorEvidence, and gap-detection's 1-based supportingEvidenceIndexes are
+  // resolved against this same ordered list.
+  const accumulated: { id: number; item: NewEvidenceInput }[] = [];
   let anySucceeded = false;
 
   for (const agentType of requestedAgents) {
@@ -59,13 +64,19 @@ export async function processResearchJob(params: ProcessJobParams): Promise<void
 
     try {
       const result = await agent.run(
-        { discoveryId, orgId, jobId, problemStatement },
+        {
+          discoveryId,
+          orgId,
+          jobId,
+          problemStatement,
+          priorEvidence: accumulated.map((e) => e.item),
+        },
         provider,
       );
 
       if (result.evidence.length > 0) {
-        await insertEvidence(admin, discoveryId, orgId, agentRun.id, result.evidence);
-        totalEvidence += result.evidence.length;
+        const inserted = await insertEvidence(admin, discoveryId, orgId, agentRun.id, result.evidence);
+        for (const row of inserted) accumulated.push(row);
       }
 
       await admin
@@ -89,9 +100,47 @@ export async function processResearchJob(params: ProcessJobParams): Promise<void
     }
   }
 
+  if (accumulated.length > 0) {
+    try {
+      const gaps = await detectGaps(problemStatement, accumulated.map((e) => e.item), provider);
+      for (const gap of gaps) {
+        const { data: gapRow } = await admin
+          .from("gaps")
+          .insert({
+            discovery_id: discoveryId,
+            org_id: orgId,
+            job_id: jobId,
+            title: gap.title,
+            description: gap.description,
+            status: gap.status,
+          })
+          .select("id")
+          .single();
+
+        if (!gapRow) continue;
+
+        const evidenceIds = gap.supportingEvidenceIndexes
+          .map((i) => accumulated[i - 1]?.id)
+          .filter((id): id is number => id !== undefined);
+
+        if (evidenceIds.length > 0) {
+          await admin
+            .from("gap_evidence")
+            .insert(evidenceIds.map((evidence_id) => ({ gap_id: gapRow.id, evidence_id })));
+        }
+      }
+    } catch (err) {
+      // Gap detection is a synthesis step, not a source of truth — a
+      // failure here shouldn't fail the whole job when evidence was
+      // already gathered successfully. Still log it: silent 0-gap results
+      // are indistinguishable from "legitimately no gaps" otherwise.
+      console.error(`Gap detection failed for job ${jobId}:`, err);
+    }
+  }
+
   const finalStatus = !anySucceeded
     ? "failed"
-    : totalEvidence > 0
+    : accumulated.length > 0
       ? "succeeded"
       : "insufficient_evidence";
 
@@ -113,22 +162,28 @@ async function insertEvidence(
   discoveryId: string,
   orgId: string,
   agentRunId: number,
-  evidence: Awaited<ReturnType<ReturnType<typeof getAgent>["run"]>>["evidence"],
-) {
-  await admin.from("evidence").insert(
-    evidence.map((e) => ({
-      discovery_id: discoveryId,
-      org_id: orgId,
-      agent_run_id: agentRunId,
-      source_name: e.sourceName,
-      source_url: e.sourceUrl,
-      published_date: e.publishedDate,
-      evidence_type: e.evidenceType,
-      quality_score: e.qualityScore,
-      confidence_score: e.confidenceScore,
-      status: e.status,
-      summary: e.summary,
-      raw_excerpt: e.rawExcerpt,
-    })),
-  );
+  evidence: NewEvidenceInput[],
+): Promise<{ id: number; item: NewEvidenceInput }[]> {
+  const { data } = await admin
+    .from("evidence")
+    .insert(
+      evidence.map((e) => ({
+        discovery_id: discoveryId,
+        org_id: orgId,
+        agent_run_id: agentRunId,
+        source_name: e.sourceName,
+        source_url: e.sourceUrl,
+        published_date: e.publishedDate,
+        evidence_type: e.evidenceType,
+        quality_score: e.qualityScore,
+        confidence_score: e.confidenceScore,
+        status: e.status,
+        summary: e.summary,
+        raw_excerpt: e.rawExcerpt,
+      })),
+    )
+    .select("id");
+
+  if (!data) return [];
+  return data.map((row, i) => ({ id: row.id, item: evidence[i]! }));
 }

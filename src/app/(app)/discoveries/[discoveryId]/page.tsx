@@ -5,7 +5,8 @@ import { DemoDataBanner } from "@/components/demo/DemoDataBanner";
 import { LiveDot } from "@/components/ui/LiveDot";
 import { RunResearchButton } from "@/components/discoveries/RunResearchButton";
 import { EvidenceTable } from "@/components/evidence/EvidenceTable";
-import type { LiveState } from "@/lib/domain-types";
+import { StatusPill } from "@/components/ui/StatusPill";
+import type { EvidenceStatus, LiveState } from "@/lib/domain-types";
 
 const STATUS_LIVE_STATE: Record<string, LiveState> = {
   draft: "idle",
@@ -42,6 +43,12 @@ export default async function DiscoveryDetailPage({
   const { data: agentRuns } = await supabase
     .from("agent_runs")
     .select("id, agent_type, status, summary, error, tokens_input, tokens_output, finished_at")
+    .eq("discovery_id", discoveryId)
+    .order("created_at", { ascending: false });
+
+  const { data: gaps } = await supabase
+    .from("gaps")
+    .select("id, title, description, status")
     .eq("discovery_id", discoveryId)
     .order("created_at", { ascending: false });
 
@@ -90,6 +97,25 @@ export default async function DiscoveryDetailPage({
                 <span className="text-foreground-muted">
                   {run.error ?? run.summary ?? run.status}
                 </span>
+              </div>
+            ))}
+          </PanelBody>
+        </Panel>
+      )}
+
+      {gaps && gaps.length > 0 && (
+        <Panel>
+          <PanelHeader>
+            <PanelTitle>Gaps ({gaps.length})</PanelTitle>
+          </PanelHeader>
+          <PanelBody className="flex flex-col gap-3">
+            {gaps.map((gap) => (
+              <div key={gap.id} className="flex items-start gap-3">
+                <StatusPill status={gap.status as EvidenceStatus} />
+                <div>
+                  <p className="text-sm font-medium text-foreground">{gap.title}</p>
+                  <p className="text-xs text-foreground-muted">{gap.description}</p>
+                </div>
               </div>
             ))}
           </PanelBody>

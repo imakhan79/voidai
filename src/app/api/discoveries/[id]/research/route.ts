@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { processResearchJob } from "@/lib/jobs/worker";
 
-const CORE_AGENTS = ["research"];
+const CORE_AGENTS = ["research", "market", "product"];
 
 export async function POST(
   request: Request,
